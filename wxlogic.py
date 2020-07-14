@@ -44,6 +44,8 @@ class MyTracker():
 class myframe(MyFrame1):
     def __init__(self, parent):
         MyFrame1.__init__(self, parent)
+        self.saving_img_swap = False
+        self.finish_setimg_temp = False
         self.init_cam = False
         self.currentpath = os.path.dirname(__file__)
         self.init_tracker_ = False
@@ -76,59 +78,95 @@ class myframe(MyFrame1):
     def log(self, text):
         self.m_statusBar1.SetStatusText(text)
     def init_sav_vid(self):
-        self.c = 0
         self.init_cam = True
         self.stop_cam = False
         self.imi = 0
         self.vid_saving = False
         self.take_video_on = False
-    def after_show_img(self,stage,frame=0):
-        if stage == 1:
-            self.vid_saving = True
-            self.take_video_on = False
-        elif stage == 2:
-            self.log('start saving...')
-            self.imi += 1
-            dir_imi = 'video_temp/'+str(self.fol).zfill(2)+'/'+str(self.imi).zfill(10)+'.bmp'
-            cv2.imwrite(dir_imi,frame)
-            self.log('saved %s'%dir_imi)
-        elif stage == 3:
-            self.add_static_img(os.path.join(os.path.dirname(__file__)
-                    ,'cv2_temp.bmp'))
+        self.cnt = 'init'
+        self.vid_saving_end = False
   
     def show_img(self):
         self.init_sav_vid()
-        cnt = -1
+        cnt = 'init'
+        swap3 = self.vid_saving_end
         while not self.stop_cam:
+            if swap3 != self.vid_saving_end:
+                swap3 = self.vid_saving_end
+                cnt = 'init'
+                
             _, frame = self.cap_.read()
             w, h = 720, 720
             x, y = 1280/2-w/2, 720/2-h/2
             x, y, w, h = int(x), int(y), int(w), int(h)
             frame = frame[y:y+h, x:x+w]
             if self.take_video_on:
-                if cnt == -1:
+                if cnt == 'init':
                     t0 = time.time()
                     cnt = 3
-                elif time.time()-t0 > 1:
+                elif time.time()-t0 > 1 and cnt > 0:
                     t0 = time.time()
                     cnt -= 1
-                elif cnt == 0:
-                    wx.CallAfter(self.after_show_img, 1)
-            if self.vid_saving:
-                wx.CallAfter(self.after_show_img, 2, frame=frame)
-            elif not self.vid_saving and self.take_video_on:
+                elif cnt < 1:
+                    self.take_video_on = False
+                    self.vid_saving = True
+            # if self.vid_saving:
+            #     wx.CallAfter(self.after_show_img, 2, frame=frame)
+            
                 font = cv2.FONT_HERSHEY_SIMPLEX 
-                org = int(720/2), int(720/2) 
+                org = int(720/2), int(720/2)
                 fontScale = 3
                 color = (255,0,255)
                 thickness = 5
                 frame = cv2.putText(frame, str(cnt), org, font,  
                         fontScale, color, thickness, cv2.LINE_AA)
+
+            # write to save
+            if self.vid_saving:
+                swap2 = self.saving_img_swap
+                wx.CallAfter(self.saving_img, frame)
+                while self.saving_img_swap == swap2:
+                    time.sleep(0.01)
+        
+            # resize and write to show
             frame = self.resize_cv2(frame, (500-2)/720)
-            cv2.imwrite(os.path.join(os.path.dirname(__file__)
-                    ,'cv2_temp.bmp'), frame)
-            time.sleep(1)
-            wx.CallAfter(self.after_show_img, 3)
+            dir_temp = os.path.join(os.path.dirname(__file__)
+                    ,'cv2_temp.bmp')
+            swap = self.finish_setimg_temp
+
+            # put on showing img
+            if self.vid_saving:
+                font = cv2.FONT_HERSHEY_SIMPLEX 
+                org = 15,29
+                fontScale = 1
+                color = (0,255,0)
+                thickness = 2
+                frame = cv2.putText(frame, 'recording...', org, font,  
+                        fontScale, color, thickness, cv2.LINE_AA)
+            if self.take_video_on:
+                font = cv2.FONT_HERSHEY_SIMPLEX 
+                org = 15,29
+                fontScale = 1
+                color = (255,10,255)
+                thickness = 2
+                frame = cv2.putText(frame, 'record in', org, font,  
+                        fontScale, color, thickness, cv2.LINE_AA)
+
+            cv2.imwrite(dir_temp, frame)
+            wx.CallAfter(self.add_static_img, dir_temp)
+            
+            while self.finish_setimg_temp == swap :
+                time.sleep(0.01)
+     
+    def saving_img(self, frame):
+        self.log('start saving...')
+        self.imi += 1
+        dir_imi = 'video_temp/'+str(self.fol).zfill(2)+'/'+str(self.imi).zfill(10)+'.bmp'
+        cv2.imwrite(dir_imi,frame)
+        self.log('saved %s'%dir_imi)
+        self.saving_img_swap = not self.saving_img_swap
+        self.vid_saving_end = True
+
     def resize_cv2(self, img, scale):
         scale_percent = scale*100
         width = int(img.shape[1] * scale_percent / 100)
@@ -137,15 +175,10 @@ class myframe(MyFrame1):
         resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
         return resized
     def add_static_img(self, frame_location):
-        if os.path.exists(frame_location):
-            try:
-                wximg = wx.Bitmap(frame_location, wx.BITMAP_TYPE_ANY)
-                self.m_bitmap5.SetBitmap(wximg)
-                self.m_mgr.Update()
-            except :pass
-      
-    def cap_release(self, event):
-        self.cap_.release()
+        wximg = wx.Bitmap(frame_location, wx.BITMAP_TYPE_ANY)
+        self.m_bitmap5.SetBitmap(wximg)
+        self.m_mgr.Update()
+        self.finish_setimg_temp = not self.finish_setimg_temp
 
     def take_video( self, event ):
         if self.init_cam:
@@ -161,6 +194,38 @@ class myframe(MyFrame1):
     def stop_recording(self, event):
         if self.init_cam and self.vid_saving:
             self.init_sav_vid()
+            self.log('remanage (.bmp) image file')
+
+            # renew image due to some bugs of Thread.
+            dir_temp = os.path.join('video_temp',str(self.fol).zfill(2))
+            for _,_,fname in os.walk(dir_temp):
+                pass 
+            
+            # remove 1, 2, 3, 4
+            # rename 2->1, 4->2, 6->3
+            for i in range(int(len(fname)/2)):
+                newi = (i+1)*2
+                oldi = newi - 1
+                ci = i+1
+
+                name_newi = str(newi).zfill(10)+'.bmp'
+                dir_name_newi = os.path.join(dir_temp, name_newi)
+                
+                name_oldi = str(oldi).zfill(10)+'.bmp'
+                dir_name_oldi = os.path.join(dir_temp, name_oldi)
+
+                name_ci = str(ci).zfill(10)+'.bmp'
+                dir_name_ci = os.path.join(dir_temp, name_ci)
+                
+                os.remove(dir_name_oldi)
+                os.rename(dir_name_newi, dir_name_ci)
+            try: 
+                i = len(fname)
+                namei = str(i).zfill(10)+'.bmp'
+                dir_namei = os.path.join(dir_temp, namei)
+                os.remove(dir_namei)
+            except :pass
+            self.log('done %d images in %s'%(int(len(fname)/2),dir_temp))
         else: 
             wx.MessageBox('There are no recording videos.', 'Cannot stop !',wx.OK )
     def mkfolder(self, name):
@@ -181,7 +246,9 @@ class myframe(MyFrame1):
 
         self.img_folder = fdir
         self.imi = 1
-        
+        try:
+            self.cap_.release()
+        except :pass
         self.stop_cam = True # stop showing camera
         self.show_imi(self.imi)
         self.init_tracker(event)
@@ -204,16 +271,20 @@ class myframe(MyFrame1):
     def Next(self, event):
         self.imi += 1
         try : self.show_imi(self.imi)
-        except : self.imi -= 1
+        except : 
+            self.imi -= 1
+            wx.MessageBox('This is the last image of this folder', 'Cannot go next !',wx.OK )
     def Previous(self, event):
         self.imi -= 1
         try: self.show_imi(self.imi)
-        except: self.imi += 1
+        except: 
+            self.imi += 1
+            wx.MessageBox('This is the first image of this folder', 'Cannot go previous !',wx.OK )
     def init_tracker(self, event):
-        self.log('init tracker...')
-        self.init_tracker_ = True 
+        self.log('pick the keypoint to init tracker...')
+        self.init_tracker_ = True
         # turn on get mouse
-        self.m_bitmap5.Bind(wx.EVT_LEFT_DOWN, self.getmousepos)
+        self.m_bitmap5.Bind(wx.EVT_LEFT_UP, self.getmousepos)
         self.point_name = [str(i).zfill(2) for i in range(10)]
         self.point_temp = []
     def draw_bitmap(self, roi):
@@ -252,7 +323,6 @@ class myframe(MyFrame1):
                 mytrack = MyTracker(self.wximg, self.click)
                 self.draw_bitmap(mytrack.roi)
             
-
     def getmousepos(self, event):
         x, y = event.GetPosition()
         
