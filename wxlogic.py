@@ -5,6 +5,7 @@ import threading
 import time
 import numpy as np
 import os
+import pickle
 class Stage:
     def __init__(self, folder):
         self.path = os.path.join(folder,'stage.txt')
@@ -30,6 +31,7 @@ class MyTracker():
         # roi = (left, top, right, bottom)
         cx, cy = point[0], point[1]
         self.roi = cx-offset, cy-offset, cx+offset, cy+offset
+        self.center = int((self.roi[0]+self.roi[2])/2), int((self.roi[3]+self.roi[1])/2)
         self.tracker = cv2.TrackerCSRT_create()
         cvimg = self.convert(wximg)
         self.tracker.init(cvimg, self.roi)
@@ -51,6 +53,17 @@ class myframe(MyFrame1):
         self.init_tracker_ = False
         self.init_open_imgfolder = False
         wx.Log.EnableLogging(False)
+        self.color_hand = [wx.GREEN, wx.Colour(125, 60, 152), wx.GREEN, wx.BLUE,wx.BLUE]
+        self.links = [[0,1] ,[0,3] ,[0,5] ,[0,7] ,[0,9], [1,2], [3,4], [5,6], [7,8], [9,10]]
+        self.roi_show_ = False
+        self.keypoint_show_ = True
+        self.link_show_ = True
+        self.left_swap = False
+        self.move_point = False
+        self.covered_point = [False for i in range(11)]
+
+
+
 
     def save_mp4( self, event ):
         event.Skip()
@@ -238,7 +251,13 @@ class myframe(MyFrame1):
     def open_imgfolder(self, event):
         self.init_open_imgfolder = True
         fdir = ""  
-        dlg = wx.DirDialog(self, defaultPath = self.currentpath)
+
+        try:
+            dir_temp = os.path.join(self.currentpath, 'video_temp')
+            dlg = wx.DirDialog(self, defaultPath = dir_temp)
+        except:        
+            dlg = wx.DirDialog(self, defaultPath = self.currentpath)
+        
         if dlg.ShowModal() == wx.ID_OK:
             fdir = dlg.GetPath()
             dlg.SetPath(fdir)
@@ -282,52 +301,170 @@ class myframe(MyFrame1):
             wx.MessageBox('This is the first image of this folder', 'Cannot go previous !',wx.OK )
     def init_tracker(self, event):
         self.log('pick the keypoint to init tracker...')
+        self.mytracks = [str(i) for i in range(11)]
         self.init_tracker_ = True
         # turn on get mouse
-        self.m_bitmap5.Bind(wx.EVT_LEFT_UP, self.getmousepos)
+        self.m_bitmap5.Bind(wx.EVT_MOUSE_EVENTS, self.getmousepos)
         self.point_name = [str(i).zfill(2) for i in range(10)]
         self.point_temp = []
-    def draw_bitmap(self, roi):
-        self.log('drawing...')
-        self.dc = wx.MemoryDC(self.wximg)
-       
-        self.dc.SetPen(wx.Pen("red"))
-        self.dc.SetBrush(wx.Brush("grey",style=wx.TRANSPARENT))
+    def draw(self):
+        rois, cens = [], []
+        for i in range(len(self.point_temp)):
+            rois.append(self.mytracks[i].roi)
+            cens.append(self.mytracks[i].center)
         
-        left, top, right, bottom = roi 
-        pos = int(left), int(top)
-        size = int(right-left), int(bottom-top)
-        rect = wx.Rect(wx.Point(pos), wx.Size(size))
-        self.dc.DrawRectangle(rect)
+        # draw rect
+        if self.roi_show_ :
+            self.dc.SetPen(wx.Pen("red"))
+            self.dc.SetBrush(wx.Brush("grey",style=wx.TRANSPARENT))
+            for roi in rois:
+                left, top, right, bottom = roi 
+                pos = int(left), int(top)
+                size = int(right-left), int(bottom-top)
+                rect = wx.Rect(wx.Point(pos), wx.Size(size))
+                self.dc.DrawRectangle(rect)
 
-        self.dc.SetBrush(wx.Brush(wx.Colour(255,0,0), wx.SOLID))
-        center = int((left+right)/2), int((bottom+top)/2)
-        self.dc.DrawCircle(center,3)
-        print('click=',self.click)
-        print('center=',center)
-        
+        # draw links
+        if self.link_show_:
+            lines, pens = [], []
+            for i,(start, end) in enumerate(self.links):
+                try:
+                    x1, y1 = cens[start]
+                    x2, y2 = cens[end]
+                    lines.append([x1, y1, x2, y2])
+                    pens.append(wx.Pen(self.color_hand[int((i+1)%5)], 2))
+                except :pass
+            self.dc.DrawLineList(lines, pens)
+
+        # draw centers
+        if self.keypoint_show_ :
+            for i,cen in enumerate(cens):
+                self.dc.SetPen(wx.Pen("black"))
+                self.dc.SetBrush(wx.Brush(wx.Colour(0,255,0), wx.SOLID))
+                size = 5
+                
+                if self.covered_point[i]:
+                    self.dc.SetPen(wx.Pen("red"))
+                    self.dc.SetBrush(wx.Brush(wx.Colour(255,0,0), wx.SOLID))
+                    size = 3
+                self.dc.DrawCircle(cen,size)
+
+    def draw_bitmap(self):
+        self.dc = wx.MemoryDC(self.wximg)
+        self.draw()
         self.dc.SelectObject(wx.NullBitmap)
         self.m_bitmap5.SetBitmap(self.wximg)
-
         self.m_mgr.Update()
-        self.log('drawed')
     def manage_point(self, event):
+        
         on = False
         if not self.init_cam:
             on = True
         else:
             wx.MessageBox('please select a image folder.','Cannot track',wx.OK )
         if on == True:
-            if len(self.point_temp) <= 10:
+            if len(self.point_temp) < 11 and len(self.point_temp) != -1 :
                 self.point_temp.append(self.click)
-                mytrack = MyTracker(self.wximg, self.click)
-                self.draw_bitmap(mytrack.roi)
-            
+                self.log('point(%d,%d) was added to be point[%d]'%(self.click[0],self.click[1],len(self.point_temp)-1))
+                i = len(self.point_temp) - 1 # the last index
+                self.mytracks[i] = MyTracker(self.wximg, self.click)
+                self.draw_bitmap()
+            elif len(self.point_temp) == 11:
+                # manage point mode
+
+                # check nearest point
+                dist = np.array(self.point_temp)-np.array(self.click)
+                nearest_index = np.argmin(dist[:,0]**2 + dist[:,1]**2)
+
+                # check in_area
+                dist = self.point_temp[nearest_index] - np.array(self.click)
+                dist = dist[0]**2 + dist[1]**2
+
+                # if in_area
+                if dist < 100:
+                    #move point
+                    self.move_point = True
+                    self.nearest_index = nearest_index
+
+    def draw_move(self,event):
+        #reset img
+        self.imi_path = os.path.join(self.img_folder
+                    , str(self.imi).zfill(10)+'.bmp')
+        wximg = wx.Bitmap(self.imi_path, wx.BITMAP_TYPE_ANY)
+        width = wximg.GetWidth()
+        self.wximg = self.scale_bitmap(wximg, 500/width)
+
+        
+        self.dc = wx.MemoryDC(self.wximg)
+
+        # re init nearest_point
+        rm = self.point_temp[self.nearest_index]
+        self.point_temp.insert(self.nearest_index,self.click)
+        self.point_temp.remove(rm)
+        self.mytracks[self.nearest_index] = MyTracker(self.wximg, self.click)
+        self.draw()
+        self.dc.SelectObject(wx.NullBitmap)
+        self.m_bitmap5.SetBitmap(self.wximg)
+
+        self.m_mgr.Update()
+    def set_covered_point(self):
+        # check nearest point
+        dist = np.array(self.point_temp)-np.array(self.click)
+        nearest_index = np.argmin(dist[:,0]**2 + dist[:,1]**2)
+
+        # check in_area
+        dist = self.point_temp[nearest_index] - np.array(self.click)
+        dist = dist[0]**2 + dist[1]**2
+
+        # if in_area
+        if dist < 100:
+            # set to covered_point
+            self.covered_point[nearest_index] = True
+            self.log('index_%d was set to be coverd point'%nearest_index)
+                
+    def Clear(self,event):
+        self.show_imi(self.imi)
+        self.point_temp = []
+    def Redraw(self,event):
+        #reset img
+        self.imi_path = os.path.join(self.img_folder
+                    , str(self.imi).zfill(10)+'.bmp')
+        wximg = wx.Bitmap(self.imi_path, wx.BITMAP_TYPE_ANY)
+        width = wximg.GetWidth()
+        self.wximg = self.scale_bitmap(wximg, 500/width)
+        #redraw
+        self.draw_bitmap()
+                
+    def Back(self, event):
+        #reset img
+        self.imi_path = os.path.join(self.img_folder
+                    , str(self.imi).zfill(10)+'.bmp')
+        wximg = wx.Bitmap(self.imi_path, wx.BITMAP_TYPE_ANY)
+        width = wximg.GetWidth()
+        self.wximg = self.scale_bitmap(wximg, 500/width)
+
+        #remove point
+        self.point_temp.remove(self.point_temp[-1])
+        self.draw_bitmap()
+      
     def getmousepos(self, event):
         x, y = event.GetPosition()
-        
         self.click = int(x), int(y)
-        self.manage_point(event)
+        self.left_down = event.LeftDown()
+        self.left_up = event.LeftUp()
+        self.right_up = event.RightUp()
+  
+        if self.left_down:
+            self.manage_point(event)
+        if self.left_up:
+            self.move_point = False
+        if self.right_up:
+            self.set_covered_point()
+            self.Redraw(event)
+        if self.move_point:
+            self.draw_move(event)
+            self.log('point[%d] is relocating to (%d, %d)'%(self.nearest_index,self.click[0],self.click[1]))
+            
     def testmode(self, event):
         self.img_folder = 'video_temp/01'
         self.imi = 1
@@ -341,3 +478,88 @@ class myframe(MyFrame1):
 
     def open_a_folder( self, event ):
         event.Skip()
+
+    def goto_img(self,event):
+        a = self.m_textCtrl3.GetValue()
+        
+        if a == 'go... .bmp':
+            wx.MessageBox('please input a number of .bmp file.','Warning',wx.OK )
+        else:
+            try: 
+                a = int(a)
+                try:
+                    self.show_imi(a)
+                except :
+                    wx.MessageBox('Cannot go to the file you want.\ncheck in the folder.','Cannot open .bmp',wx.OK )
+            
+            except:
+                wx.MessageBox('This is not a number\nplease input a number of .bmp file.','Cannot go to ...',wx.OK )
+            
+    def key_on_go_bmp(self,event):
+        key = event.GetKeyCode()
+        if key==13: # enter
+            self.goto_img(event)
+    def click_on_go_bmp(self,event):
+        self.m_textCtrl3.SetValue('')
+        event.Skip()
+    def roi_show(self,event):
+        self.roi_show_ = True 
+        self.Redraw(event)
+        self.m_menuItem17.Check(True)
+        self.m_menuItem18.Check(False)
+    def roi_hide(self,event):
+        self.roi_show_ = False 
+        self.Redraw(event)
+        self.m_menuItem17.Check(False)
+        self.m_menuItem18.Check(True)
+    def keypoint_show(self,event):
+        self.keypoint_show_ = True
+        self.Redraw(event)
+        self.m_menuItem171.Check(True)
+        self.m_menuItem181.Check(False)
+    def keypoint_hide(self,event):
+        self.keypoint_show_ = False
+        self.Redraw(event)
+        self.m_menuItem171.Check(False)
+        self.m_menuItem181.Check(True)
+    def link_show(self,event):
+        self.link_show_ = True
+        self.Redraw(event)
+        self.m_menuItem172.Check(True)
+        self.m_menuItem182.Check(False)
+    def link_hide(self,event):
+        self.link_show_ = False
+        self.Redraw(event)
+        self.m_menuItem172.Check(False)
+        self.m_menuItem182.Check(True)
+    def Save(self,event):
+        print(self.img_folder)
+        # if len(self.point_temp) == 11:
+        # output = [img_name, [11_points], [confirm]]
+        img_name = str(self.imi).zfill(10)
+        # print(self.point_temp)
+        # print(self.covered_point)
+        dictionary_data = {"keypoint": self.point_temp
+                , 'covered_point': self.covered_point}
+        dir_temp = os.path.join(self.img_folder ,img_name + ".pkl")
+        with open(dir_temp, "wb") as f:
+            pickle.dump(dictionary_data, f)
+        
+        f = open(dir_temp ,'rb')
+        dat = pickle.load(f)
+        
+        
+
+
+
+
+
+
+        # else:
+        #     print('not equaa 11')
+        
+    
+
+    
+
+    
