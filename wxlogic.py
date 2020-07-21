@@ -42,8 +42,9 @@ class MyTracker():
         self.center = left+width/2, top+height/2
 
 class myframe(MyFrame1):
-    def __init__(self, parent):
+    def __init__(self, parent, app):
         MyFrame1.__init__(self, parent)
+        app.Bind( wx.EVT_KEY_DOWN, self.on_key )
         self.saving_img_swap = False
         self.finish_setimg_temp = False
         self.init_cam = False
@@ -58,10 +59,12 @@ class myframe(MyFrame1):
         self.link_show_ = True
         self.left_swap = False
         self.move_point = False
-        self.covered_point = [False for i in range(11)]
-        self.real_img = []
+        self.hand_mode = 11
+        self.covered_point = [False for i in range(self.hand_mode)]
         self.keypoint_size = 3
         self.tracking_roi_size = 50
+        self.checking_mode = False
+        
 
 
 
@@ -77,9 +80,10 @@ class myframe(MyFrame1):
         self.log('croped image from camera (1280,720)=>(720,720)')
         self.create_thread(self.show_img)
     def create_thread(self, target):
-        thread = threading.Thread(target=target)
+        self.thread = threading.Thread(target=target)
         #thread.daemon = True
-        thread.start()
+        self.thread.start()
+        
     def startcap(self):
         self.log('init video capture...')
         self.cap_ = cv2.VideoCapture(0)
@@ -152,10 +156,10 @@ class myframe(MyFrame1):
             if self.vid_saving:
                 font = cv2.FONT_HERSHEY_SIMPLEX 
                 org = 15,29
-                fontScale = 1
-                color = (0,255,0)
-                thickness = 2
-                frame = cv2.putText(frame, 'recording...', org, font,  
+                fontScale = 0.7
+                color = (255,255,0)
+                thickness = 1
+                frame = cv2.putText(frame, 'press space to stop recording..', org, font,  
                         fontScale, color, thickness, cv2.LINE_AA)
             if self.take_video_on:
                 font = cv2.FONT_HERSHEY_SIMPLEX 
@@ -164,6 +168,15 @@ class myframe(MyFrame1):
                 color = (255,10,255)
                 thickness = 2
                 frame = cv2.putText(frame, 'record in', org, font,  
+                        fontScale, color, thickness, cv2.LINE_AA)
+
+            if not self.take_video_on and not self.vid_saving:      
+                font = cv2.FONT_HERSHEY_SIMPLEX 
+                org = 15,29
+                fontScale = 0.7
+                color = (0,255,0)
+                thickness = 1
+                frame = cv2.putText(frame, 'press space to record', org, font,  
                         fontScale, color, thickness, cv2.LINE_AA)
 
             cv2.imwrite(dir_temp, frame)
@@ -176,6 +189,7 @@ class myframe(MyFrame1):
         self.log('start saving...')
         self.imi += 1
         dir_imi = 'video_temp/'+str(self.fol).zfill(2)+'/'+str(self.imi).zfill(10)+'.bmp'
+        frame = cv2.flip(frame, 1)
         cv2.imwrite(dir_imi,frame)
         self.log('saved %s'%dir_imi)
         self.saving_img_swap = not self.saving_img_swap
@@ -189,10 +203,11 @@ class myframe(MyFrame1):
         resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
         return resized
     def add_static_img(self, frame_location):
-        wximg = wx.Bitmap(frame_location, wx.BITMAP_TYPE_ANY)
-        self.m_bitmap5.SetBitmap(wximg)
-        self.m_mgr.Update()
-        self.finish_setimg_temp = not self.finish_setimg_temp
+        if not self.stop_cam:
+            wximg = wx.Bitmap(frame_location, wx.BITMAP_TYPE_ANY)
+            self.m_bitmap5.SetBitmap(wximg)
+            self.m_mgr.Update()
+            self.finish_setimg_temp = not self.finish_setimg_temp
 
     def take_video( self, event ):
         if self.init_cam:
@@ -239,7 +254,11 @@ class myframe(MyFrame1):
                 dir_namei = os.path.join(dir_temp, namei)
                 os.remove(dir_namei)
             except :pass
+           
+            # open current folder
+            self.open_imgfolder_(event)
             self.log('done %d images in %s'%(int(len(fname)/2),dir_temp))
+
         else: 
             wx.MessageBox('There are no recording videos.', 'Cannot stop !',wx.OK )
     def mkfolder(self, name):
@@ -250,6 +269,7 @@ class myframe(MyFrame1):
             self.log('found___ (%s) ___before make'%name)
 
     def open_imgfolder(self, event):
+        self.checking_mode = False
         self.init_open_imgfolder = True
         fdir = ""  
 
@@ -272,6 +292,19 @@ class myframe(MyFrame1):
         self.stop_cam = True # stop showing camera
         self.show_imi(self.imi)
         self.init_tracker(event)
+    def open_imgfolder_(self, event):
+        self.stop_cam = True # stop showing camera
+        self.init_open_imgfolder = True
+        fdir = os.path.join('video_temp',str(self.fol).zfill(2))  
+        self.img_folder = fdir
+        self.imi = 1
+        try:
+            self.cap_.release()
+        except :pass
+
+        self.show_imi(1)
+        self.init_tracker(event)
+
     def show_imi(self, i):
         self.imi_path = os.path.join(self.img_folder
                     , str(i).zfill(10)+'.bmp')
@@ -289,10 +322,31 @@ class myframe(MyFrame1):
         image = image.Scale(width, height, wx.IMAGE_QUALITY_HIGH)
         result = wx.Bitmap(image, wx.BITMAP_TYPE_ANY)
         return result
+
+    def read_pkl(self, event):
+        dir_temp = os.path.join(self.img_folder, str(self.imi).zfill(10)+'.pkl')
+        dir_temp2 = os.path.join(self.img_folder, str(self.imi).zfill(10)+'.bmp')
+        with open(dir_temp, 'rb') as f:
+            data = pickle.load(f)
+        self.point_temp = data['keypoint']
+        self.covered_point = data['covered_point']
+        self.real_im = cv2.imread(dir_temp2)
+        self.reinit_tracker(event)
+        self.draw_bitmap()
+        self.log(dir_temp)
+        # check hand_mode
+        num = len(self.point_temp)
+        if num == 2: self.hand_mode = 2
+        if num == 11: self.hand_mode = 11
+        self.m_bitmap5.Bind(wx.EVT_MOUSE_EVENTS, self.getmousepos)
+
     def Next(self, event):
         self.Clear(event)
         self.imi += 1
-        try : self.show_imi(self.imi)
+        try : 
+            self.show_imi(self.imi)
+            if self.checking_mode:
+                self.read_pkl(event)
         except : 
             self.imi -= 1
             wx.MessageBox('This is the last image of this folder', 'Cannot go next !',wx.OK )
@@ -300,18 +354,28 @@ class myframe(MyFrame1):
     def Previous(self, event):
         self.Clear(event)
         self.imi -= 1
-        try: self.show_imi(self.imi)
+        try: 
+            self.show_imi(self.imi)
+            if self.checking_mode:
+                self.read_pkl(event)
         except: 
             self.imi += 1
             wx.MessageBox('This is the first image of this folder', 'Cannot go previous !',wx.OK )
     def init_tracker(self, event):
         self.log('pick the keypoint to init tracker...')
-        self.mytracks = [str(i) for i in range(11)]
+        self.mytracks = [str(i) for i in range(self.hand_mode)]
         self.init_tracker_ = True
         # turn on get mouse
         self.m_bitmap5.Bind(wx.EVT_MOUSE_EVENTS, self.getmousepos)
         self.point_name = [str(i).zfill(2) for i in range(10)]
         self.point_temp = []
+    def reinit_tracker(self,event):
+        self.log('re-init tracker size')
+        self.mytracks = [str(i) for i in range(self.hand_mode)]
+        for i,point in enumerate(self.point_temp):
+            self.mytracks[i] = MyTracker(self.real_im, point, self.tracking_roi_size)
+        self.Redraw(event)
+
     def draw(self):
         thres = 500/720
         rois, cens = [], []
@@ -352,8 +416,8 @@ class myframe(MyFrame1):
                 size = self.keypoint_size
                 
                 if self.covered_point[i]:
-                    self.dc.SetPen(wx.Pen("red"))
-                    self.dc.SetBrush(wx.Brush(wx.Colour(255,0,0), wx.SOLID))
+                    self.dc.SetPen(wx.Pen("yellow"))
+                    self.dc.SetBrush(wx.Brush(wx.Colour(255,255,0), wx.SOLID))
                     size = self.keypoint_size-1 if self.keypoint_size > 1 else 1
                 self.dc.DrawCircle(cen,size)
 
@@ -365,13 +429,13 @@ class myframe(MyFrame1):
         self.m_mgr.Update()
     def manage_point(self, event):
     
-        if len(self.point_temp) < 11 and len(self.point_temp) != -1 :
+        if len(self.point_temp) < self.hand_mode and len(self.point_temp) != -1 :
             self.point_temp.append(self.click)
             self.log('point(%d,%d) was added to be point[%d]'%(self.click[0],self.click[1],len(self.point_temp)-1))
             i = len(self.point_temp) - 1 # the last index
             self.mytracks[i] = MyTracker(self.real_im, self.click, self.tracking_roi_size)
             self.draw_bitmap()
-        elif len(self.point_temp) == 11:
+        elif len(self.point_temp) == self.hand_mode:
             # manage point mode
 
             # check nearest point
@@ -383,7 +447,7 @@ class myframe(MyFrame1):
             dist = dist[0]**2 + dist[1]**2
 
             # if in_area
-            if dist < 600:
+            if dist < 1000:
                 #move point
                 self.move_point = True
                 self.nearest_index = nearest_index
@@ -469,15 +533,41 @@ class myframe(MyFrame1):
             self.log('point[%d] is relocating to (%d, %d)'%(self.nearest_index,self.click[0],self.click[1]))
         
     def open_a_data( self, event ):
-        stage = Stage()
-        lastline = stage.lastest()
+        with wx.FileDialog(self, "Open .bmp file", wildcard="bmp files (*.bmp)|*.bmp",
+                       style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
 
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return     # the user changed their mind
+            # Proceed loading the file chosen by the user
+            pathname = fileDialog.GetPath()
+            
+            try:
+                #reset img
+                wximg = wx.Bitmap(pathname, wx.BITMAP_TYPE_ANY)
+                width = wximg.GetWidth()
+                self.wximg = self.scale_bitmap(wximg, 500/width)
+
+                dir_temp = pathname[:-4] + '.pkl'
+                with open(dir_temp, "rb") as f:
+                    data = pickle.load(f)
+                self.point_temp = data['keypoint']
+                self.covered_point = data['covered_point']
+            
+                self.img_folder = fileDialog.GetDirectory()
+                print(self.img_folder)
+                fname = fileDialog.GetFilename()
+                self.imi = int(fname[:-4])
+                self.read_pkl(event)
+                self.log(pathname)
+                self.checking_mode = True
+            except :
+                wx.MessageBox('Cannot open %s'%dir_temp,'Warning',wx.OK )
+            
     def open_a_folder( self, event ):
         event.Skip()
 
     def goto_img(self,event):
         a = self.m_textCtrl3.GetValue()
-        
         if a == 'go... .bmp':
             wx.MessageBox('please input a number of .bmp file.','Warning',wx.OK )
         else:
@@ -485,6 +575,8 @@ class myframe(MyFrame1):
                 a = int(a)
                 try:
                     self.show_imi(a)
+                    self.imi = a
+                    self.Clear(event)
                 except :
                     wx.MessageBox('Cannot go to the file you want.\ncheck in the folder.','Cannot open .bmp',wx.OK )
             
@@ -500,72 +592,160 @@ class myframe(MyFrame1):
         event.Skip()
     def roi_show(self,event):
         self.roi_show_ = True 
-        self.Redraw(event)
         self.m_menuItem17.Check(True)
         self.m_menuItem18.Check(False)
+        self.Redraw(event)
     def roi_hide(self,event):
         self.roi_show_ = False 
-        self.Redraw(event)
         self.m_menuItem17.Check(False)
         self.m_menuItem18.Check(True)
+        self.Redraw(event)
     def keypoint_show(self,event):
         self.keypoint_show_ = True
-        self.Redraw(event)
         self.m_menuItem171.Check(True)
         self.m_menuItem181.Check(False)
+        self.Redraw(event)
     def keypoint_hide(self,event):
         self.keypoint_show_ = False
-        self.Redraw(event)
         self.m_menuItem171.Check(False)
         self.m_menuItem181.Check(True)
+        self.Redraw(event)
     def link_show(self,event):
         self.link_show_ = True
-        self.Redraw(event)
         self.m_menuItem172.Check(True)
         self.m_menuItem182.Check(False)
+        self.Redraw(event)
     def link_hide(self,event):
         self.link_show_ = False
-        self.Redraw(event)
         self.m_menuItem172.Check(False)
         self.m_menuItem182.Check(True)
-    def Save(self,event):
-        # if len(self.point_temp) == 11:
-        # output = [img_name, [11_points], [confirm]]
-        img_name = str(self.imi).zfill(10)
-        # print(self.point_temp)
-        # print(self.covered_point)
-        dictionary_data = {"keypoint": self.point_temp
-                , 'covered_point': self.covered_point}
-        dir_temp = os.path.join(self.img_folder ,img_name + ".pkl")
-        with open(dir_temp, "wb") as f:
-            pickle.dump(dictionary_data, f)
-        self.real_im = []
-        self.Next(event)
-
-        # update all trackers
-        for i in range(11):
-            self.mytracks[i].update(self.real_im)
-            p = self.mytracks[i].center
-            self.point_temp.append(p)
         self.Redraw(event)
+    def tracking_size_30( self, event ):
+        self.tracking_roi_size = 30
+        self.m_menuItem17311.Check(True)
+        self.m_menuItem17312.Check(False)
+        self.m_menuItem17313.Check(False)
+        self.m_menuItem17314.Check(False)
+        self.m_menuItem35.Check(False)
+        self.reinit_tracker(event)
+    def tracking_size_40( self, event ):
+        self.tracking_roi_size = 40
+        self.m_menuItem17311.Check(0)
+        self.m_menuItem17312.Check(0)
+        self.m_menuItem17313.Check(False)
+        self.m_menuItem17314.Check(False)
+        self.m_menuItem35.Check(False)
+        self.reinit_tracker(event)
+    def tracking_size_50( self, event ):
+        self.tracking_roi_size = 50
+        self.m_menuItem17311.Check(0)
+        self.m_menuItem17312.Check(False)
+        self.m_menuItem17313.Check(1)
+        self.m_menuItem17314.Check(False)
+        self.m_menuItem35.Check(False)
+        self.reinit_tracker(event)
+    def tracking_size_60( self, event ):
+        self.tracking_roi_size = 60
+        self.m_menuItem17311.Check(0)
+        self.m_menuItem17312.Check(False)
+        self.m_menuItem17313.Check(False)
+        self.m_menuItem17314.Check(1)
+        self.m_menuItem35.Check(False)
+        self.reinit_tracker(event)
+    def tracking_size_100( self, event ):
+        self.tracking_roi_size = 100
+        self.m_menuItem17311.Check(0)
+        self.m_menuItem17312.Check(False)
+        self.m_menuItem17313.Check(False)
+        self.m_menuItem17314.Check(False)
+        self.m_menuItem35.Check(1)
+        self.reinit_tracker(event)
+    def keypoint_size_mark(self,event):
+        size = self.keypoint_size
+        self.keysize1.Check(0)
+        self.keysize2.Check(0)
+        self.keysize3.Check(0)
+        self.keysize5.Check(0)
+        self.keysize10.Check(0)
+        if size==1 : self.keysize1.Check(1)
+        elif size==2 : self.keysize2.Check(1)
+        elif size==3 : self.keysize3.Check(1)
+        elif size==5 : self.keysize5.Check(1)
+        elif size==10 : self.keysize10.Check(1)
+        self.Redraw(event)
+    def keypoint_size1(self, event):
+        self.keypoint_size = 1
+        self.keypoint_size_mark(event)
+    def keypoint_size2(self, event):
+        self.keypoint_size = 2
+        self.keypoint_size_mark(event)
+    def keypoint_size3(self, event):
+        self.keypoint_size = 3
+        self.keypoint_size_mark(event)
+    def keypoint_size5(self, event):
+        self.keypoint_size = 5
+        self.keypoint_size_mark(event)
+    def keypoint_size10(self, event):
+        self.keypoint_size = 10
+        self.keypoint_size_mark(event)
+    def hand2(self,event):
+        self.hand_mode = 2
+        self.mode_hand2.Check(1)
+        self.mode_hand11.Check(0)
+        self.Clear(event)
+    def hand11(self,event):
+        self.hand_mode = 11
+        self.mode_hand2.Check(0)
+        self.mode_hand11.Check(1)
+        self.Clear(event)
+    def Save(self,event):
+        if len(self.point_temp) == self.hand_mode:
+            # output = [img_name, [11_points], [confirm]]
+            img_name = str(self.imi).zfill(10)
+            dictionary_data = {"keypoint": self.point_temp
+                    , 'covered_point': self.covered_point}
+            dir_temp = os.path.join(self.img_folder ,img_name + ".pkl")
+            with open(dir_temp, "wb") as f:
+                pickle.dump(dictionary_data, f)
+            self.real_im = []
+            self.Next(event)
+
+            if not self.checking_mode:
+
+
+                # update all trackers
+                for i in range(self.hand_mode):
+                    self.mytracks[i].update(self.real_im)
+                    p = self.mytracks[i].center
+                    self.point_temp.append(p)
+                self.Redraw(event)
       
 
-        # else:
-        #     print('not equaa 11')
+        else:
+            wx.MessageBox('need %d keypoint to save'%self.hand_mode, 'Cannot save !',wx.OK )
         
-    
+    def on_key(self, event):
+        key = event.GetKeyCode()
+        print(key)
+        if key == 32:
+            if not self.stop_cam:
+                if not self.vid_saving:
+                    self.take_video(event)
+                elif self.vid_saving:
+                    self.stop_recording(event)
+        event.Skip()
     def testmode(self, event):
         self.img_folder = 'video_temp/70'
         self.imi = 3
         self.stop_cam = True # stop showing camera
-        self.roi_show_ = True
+        
         self.show_imi(self.imi)
         
         self.init_tracker(event)
         self.point_temp = [(241, 531), (184, 348), (148, 239), (228, 318), (240, 175), (277, 315), (315, 159), (325, 329), (365, 192), (360, 442), (429, 339)]
-        for i,point in enumerate(self.point_temp):
-            self.mytracks[i] = MyTracker(self.real_im, point, self.tracking_roi_size)
-        self.Redraw(event)
+        self.reinit_tracker(event)
+
+        self.roi_show(event)
     
 
     
