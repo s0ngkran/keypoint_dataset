@@ -711,11 +711,10 @@ class myframe(MyFrame1):
             self.Next(event)
 
             if not self.checking_mode:
-
-
                 # update all trackers
                 for i in range(self.hand_mode):
-                    self.mytracks[i].update(self.real_im)
+                    if not self.covered_point[i]: # update if not be covered
+                        self.mytracks[i].update(self.real_im)
                     p = self.mytracks[i].center
                     self.point_temp.append(p)
                 self.Redraw(event)
