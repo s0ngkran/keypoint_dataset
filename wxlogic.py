@@ -324,7 +324,11 @@ class myframe(MyFrame1):
         return result
 
     def read_pkl(self, event):
-        dir_temp = os.path.join(self.img_folder, str(self.imi).zfill(10)+'.pkl')
+        assert self.hand_mode in [2,11], 'check hand_mode'
+        if self.hand_mode == 11:
+            dir_temp = os.path.join(self.img_folder, str(self.imi).zfill(10)+'.pkl')
+        elif self.hand_mode == 2:
+            dir_temp = os.path.join(self.img_folder, str(self.imi).zfill(10)+'_2p.pkl')
         dir_temp2 = os.path.join(self.img_folder, str(self.imi).zfill(10)+'.bmp')
         with open(dir_temp, 'rb') as f:
             data = pickle.load(f)
@@ -546,8 +550,11 @@ class myframe(MyFrame1):
                 wximg = wx.Bitmap(pathname, wx.BITMAP_TYPE_ANY)
                 width = wximg.GetWidth()
                 self.wximg = self.scale_bitmap(wximg, 500/width)
-
-                dir_temp = pathname[:-4] + '.pkl'
+                assert self.hand_mode in [2,11]
+                if self.hand_mode == 11:
+                    dir_temp = pathname[:-4] + '.pkl'
+                elif self.hand_mode == 2:
+                    dir_temp = pathname[:-4] + '_2p.pkl'
                 with open(dir_temp, "rb") as f:
                     data = pickle.load(f)
                 self.point_temp = data['keypoint']
@@ -704,7 +711,11 @@ class myframe(MyFrame1):
             img_name = str(self.imi).zfill(10)
             dictionary_data = {"keypoint": self.point_temp
                     , 'covered_point': self.covered_point}
-            dir_temp = os.path.join(self.img_folder ,img_name + ".pkl")
+            assert self.hand_mode in [2,11]
+            if self.hand_mode == 11:
+                dir_temp = os.path.join(self.img_folder ,img_name + ".pkl")
+            elif self.hand_mode == 2:
+                dir_temp = os.path.join(self.img_folder ,img_name + "_2p.pkl")
             with open(dir_temp, "wb") as f:
                 pickle.dump(dictionary_data, f)
             self.real_im = []
