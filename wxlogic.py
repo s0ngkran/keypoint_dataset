@@ -705,6 +705,32 @@ class myframe(MyFrame1):
         self.mode_hand2.Check(0)
         self.mode_hand11.Check(1)
         self.Clear(event)
+    def Delete(self, event):
+        resp = wx.MessageBox('Do you want to delete this picture?', 'Confirm'
+                                    ,wx.YES | wx.NO)
+        if resp == wx.YES:
+            #delete
+            dir_temp = os.path.join(self.img_folder
+                    , str(self.imi).zfill(10)+'.bmp')
+            os.remove(dir_temp) # a bug
+            self.log('deleted '+str(self.imi).zfill(10)+'.bmp')
+            #rename
+            i = 0
+            while True:
+                try:
+                    scr = os.path.join(self.img_folder
+                            , str(self.imi+1+i).zfill(10)+'.bmp')
+                    dst = os.path.join(self.img_folder
+                            , str(self.imi+i).zfill(10)+'.bmp')
+                    os.rename(scr, dst)
+                    i += 1
+                except: break
+        try:
+            self.show_imi(self.imi)
+        except:
+            wx.MessageBox('This is the last image of this folder', 'Cannot go next !',wx.OK )
+    
+
     def Save(self,event):
         if len(self.point_temp) == self.hand_mode:
             # output = [img_name, [11_points], [confirm]]
