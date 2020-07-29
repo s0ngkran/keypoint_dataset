@@ -345,7 +345,6 @@ class myframe(MyFrame1):
         self.m_bitmap5.Bind(wx.EVT_MOUSE_EVENTS, self.getmousepos)
 
     def Next(self, event):
-        self.Clear(event)
         self.imi += 1
         try : 
             self.show_imi(self.imi)
@@ -356,12 +355,10 @@ class myframe(MyFrame1):
             wx.MessageBox('This is the last image of this folder', 'Cannot go next !',wx.OK )
     
     def Previous(self, event):
-        self.Clear(event)
         self.imi -= 1
         try: 
             self.show_imi(self.imi)
-            if self.checking_mode:
-                self.read_pkl(event)
+            self.read_pkl(event)
         except: 
             self.imi += 1
             wx.MessageBox('This is the first image of this folder', 'Cannot go previous !',wx.OK )
@@ -726,7 +723,7 @@ class myframe(MyFrame1):
                     i += 1
                 except: break
         try:
-            self.show_imi(self.imi)
+            self.Clear(event)
         except:
             wx.MessageBox('This is the last image of this folder', 'Cannot go next !',wx.OK )
     
@@ -745,6 +742,7 @@ class myframe(MyFrame1):
             with open(dir_temp, "wb") as f:
                 pickle.dump(dictionary_data, f)
             self.real_im = []
+            self.point_temp = []
             self.Next(event)
 
             if not self.checking_mode:
@@ -754,6 +752,7 @@ class myframe(MyFrame1):
                         self.mytracks[i].update(self.real_im)
                     p = self.mytracks[i].center
                     self.point_temp.append(p)
+                print('len=',len(self.point_temp))
                 self.Redraw(event)
       
 
