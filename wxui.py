@@ -70,26 +70,26 @@ class MyFrame1 ( wx.Frame ):
 
 		self.m_menu11.AppendSeparator()
 
-		self.m_menuItem173 = wx.MenuItem( self.m_menu11, wx.ID_ANY, u"size 1", wx.EmptyString, wx.ITEM_CHECK )
-		self.m_menuItem173.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
-		self.m_menu11.Append( self.m_menuItem173 )
+		self.keysize1 = wx.MenuItem( self.m_menu11, wx.ID_ANY, u"size 1", wx.EmptyString, wx.ITEM_CHECK )
+		self.keysize1.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
+		self.m_menu11.Append( self.keysize1 )
 
-		self.m_menuItem19 = wx.MenuItem( self.m_menu11, wx.ID_ANY, u"size 2", wx.EmptyString, wx.ITEM_CHECK )
-		self.m_menuItem19.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
-		self.m_menu11.Append( self.m_menuItem19 )
+		self.keysize2 = wx.MenuItem( self.m_menu11, wx.ID_ANY, u"size 2", wx.EmptyString, wx.ITEM_CHECK )
+		self.keysize2.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
+		self.m_menu11.Append( self.keysize2 )
 
-		self.m_menuItem20 = wx.MenuItem( self.m_menu11, wx.ID_ANY, u"size 3", wx.EmptyString, wx.ITEM_CHECK )
-		self.m_menuItem20.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
-		self.m_menu11.Append( self.m_menuItem20 )
-		self.m_menuItem20.Check( True )
+		self.keysize3 = wx.MenuItem( self.m_menu11, wx.ID_ANY, u"size 3", wx.EmptyString, wx.ITEM_CHECK )
+		self.keysize3.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
+		self.m_menu11.Append( self.keysize3 )
+		self.keysize3.Check( True )
 
-		self.m_menuItem21 = wx.MenuItem( self.m_menu11, wx.ID_ANY, u"size 5", wx.EmptyString, wx.ITEM_CHECK )
-		self.m_menuItem21.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
-		self.m_menu11.Append( self.m_menuItem21 )
+		self.keysize5 = wx.MenuItem( self.m_menu11, wx.ID_ANY, u"size 5", wx.EmptyString, wx.ITEM_CHECK )
+		self.keysize5.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
+		self.m_menu11.Append( self.keysize5 )
 
-		self.m_menuItem22 = wx.MenuItem( self.m_menu11, wx.ID_ANY, u"size 10", wx.EmptyString, wx.ITEM_CHECK )
-		self.m_menuItem22.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
-		self.m_menu11.Append( self.m_menuItem22 )
+		self.keysize10 = wx.MenuItem( self.m_menu11, wx.ID_ANY, u"size 10", wx.EmptyString, wx.ITEM_CHECK )
+		self.keysize10.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
+		self.m_menu11.Append( self.keysize10 )
 
 		self.menu_camera.AppendSubMenu( self.m_menu11, u"Keypoint" )
 
@@ -145,7 +145,8 @@ class MyFrame1 ( wx.Frame ):
 		self.m_menuItem17314.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
 		self.m_menu4_size.Append( self.m_menuItem17314 )
 
-		self.m_menuItem35 = wx.MenuItem( self.m_menu4_size, wx.ID_ANY, u"size 100", wx.EmptyString, wx.ITEM_NORMAL )
+		self.m_menuItem35 = wx.MenuItem( self.m_menu4_size, wx.ID_ANY, u"size 100", wx.EmptyString, wx.ITEM_CHECK )
+		self.m_menuItem35.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
 		self.m_menu4_size.Append( self.m_menuItem35 )
 
 		self.menu_track.AppendSubMenu( self.m_menu4_size, u"size" )
@@ -155,6 +156,18 @@ class MyFrame1 ( wx.Frame ):
 		self.menu_track.Append( self.m_menuItem61 )
 
 		self.m_menubar1.Append( self.menu_track, u"Tracker" )
+
+		self.setting_menu = wx.Menu()
+		self.mode_hand2 = wx.MenuItem( self.setting_menu, wx.ID_ANY, u"mode hand_keypoint_2", wx.EmptyString, wx.ITEM_CHECK )
+		self.mode_hand2.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
+		self.setting_menu.Append( self.mode_hand2 )
+
+		self.mode_hand11 = wx.MenuItem( self.setting_menu, wx.ID_ANY, u"mode hand_keypoint_11", wx.EmptyString, wx.ITEM_CHECK )
+		self.mode_hand11.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
+		self.setting_menu.Append( self.mode_hand11 )
+		self.mode_hand11.Check( True )
+
+		self.m_menubar1.Append( self.setting_menu, u"Setting" )
 
 		self.menu_check = wx.Menu()
 		self.menuItem_open_a_data = wx.MenuItem( self.menu_check, wx.ID_ANY, u"open a data", wx.EmptyString, wx.ITEM_NORMAL )
@@ -230,7 +243,7 @@ class MyFrame1 ( wx.Frame ):
 
 		self.m_mgr.AddPane( self.m_button14, wx.aui.AuiPaneInfo() .Left() .CaptionVisible( False ).CloseButton( False ).PinButton( True ).Dock().Resizable().FloatingSize( wx.DefaultSize ) )
 
-		self.m_button141 = wx.Button( self, wx.ID_ANY, u"Reset", wx.DefaultPosition, wx.Size( 700,-1 ), 0 )
+		self.m_button141 = wx.Button( self, wx.ID_ANY, u"Delete", wx.DefaultPosition, wx.Size( 700,-1 ), 0 )
 
 		self.m_button141.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_FILE_SAVE, wx.ART_BUTTON ) )
 		self.m_button141.SetMinSize( wx.Size( 700,-1 ) )
@@ -251,6 +264,7 @@ class MyFrame1 ( wx.Frame ):
 		self.Centre( wx.BOTH )
 
 		# Connect Events
+		self.Bind( wx.EVT_KEY_DOWN, self.on_key )
 		self.Bind( wx.EVT_MENU, self.open_imgfolder, id = self.menuItem_open.GetId() )
 		self.Bind( wx.EVT_MENU, self.save_mp4, id = self.menuItem_save.GetId() )
 		self.Bind( wx.EVT_MENU, self.exit_program, id = self.menuItem_exit.GetId() )
@@ -258,11 +272,11 @@ class MyFrame1 ( wx.Frame ):
 		self.Bind( wx.EVT_MENU, self.roi_hide, id = self.m_menuItem18.GetId() )
 		self.Bind( wx.EVT_MENU, self.keypoint_show, id = self.m_menuItem171.GetId() )
 		self.Bind( wx.EVT_MENU, self.keypoint_hide, id = self.m_menuItem181.GetId() )
-		self.Bind( wx.EVT_MENU, self.keypoint_size1, id = self.m_menuItem173.GetId() )
-		self.Bind( wx.EVT_MENU, self.keypoint_size2, id = self.m_menuItem19.GetId() )
-		self.Bind( wx.EVT_MENU, self.keypoint_size3, id = self.m_menuItem20.GetId() )
-		self.Bind( wx.EVT_MENU, self.keypoint_size5, id = self.m_menuItem21.GetId() )
-		self.Bind( wx.EVT_MENU, self.keypoint_size10, id = self.m_menuItem22.GetId() )
+		self.Bind( wx.EVT_MENU, self.keypoint_size1, id = self.keysize1.GetId() )
+		self.Bind( wx.EVT_MENU, self.keypoint_size2, id = self.keysize2.GetId() )
+		self.Bind( wx.EVT_MENU, self.keypoint_size3, id = self.keysize3.GetId() )
+		self.Bind( wx.EVT_MENU, self.keypoint_size5, id = self.keysize5.GetId() )
+		self.Bind( wx.EVT_MENU, self.keypoint_size10, id = self.keysize10.GetId() )
 		self.Bind( wx.EVT_MENU, self.link_show, id = self.m_menuItem172.GetId() )
 		self.Bind( wx.EVT_MENU, self.link_hide, id = self.m_menuItem182.GetId() )
 		self.Bind( wx.EVT_MENU, self.opencam, id = self.menuItem_opencam2.GetId() )
@@ -275,6 +289,8 @@ class MyFrame1 ( wx.Frame ):
 		self.Bind( wx.EVT_MENU, self.tracking_size_60, id = self.m_menuItem17314.GetId() )
 		self.Bind( wx.EVT_MENU, self.tracking_size_100, id = self.m_menuItem35.GetId() )
 		self.Bind( wx.EVT_MENU, self.start_track, id = self.m_menuItem61.GetId() )
+		self.Bind( wx.EVT_MENU, self.hand2, id = self.mode_hand2.GetId() )
+		self.Bind( wx.EVT_MENU, self.hand11, id = self.mode_hand11.GetId() )
 		self.Bind( wx.EVT_MENU, self.open_a_data, id = self.menuItem_open_a_data.GetId() )
 		self.Bind( wx.EVT_MENU, self.open_a_folder, id = self.menuItem_open_a_folder.GetId() )
 		self.m_textCtrl3.Bind( wx.EVT_KEY_UP, self.key_on_go_bmp )
@@ -285,7 +301,7 @@ class MyFrame1 ( wx.Frame ):
 		self.m_button12.Bind( wx.EVT_BUTTON, self.Back )
 		self.m_button13.Bind( wx.EVT_BUTTON, self.Clear )
 		self.m_button14.Bind( wx.EVT_BUTTON, self.Save )
-		self.m_button141.Bind( wx.EVT_BUTTON, self.Reset )
+		self.m_button141.Bind( wx.EVT_BUTTON, self.Delete )
 		self.m_button142.Bind( wx.EVT_BUTTON, self.testmode )
 
 	def __del__( self ):
@@ -294,6 +310,9 @@ class MyFrame1 ( wx.Frame ):
 
 
 	# Virtual event handlers, overide them in your derived class
+	def on_key( self, event ):
+		event.Skip()
+
 	def open_imgfolder( self, event ):
 		event.Skip()
 
@@ -366,6 +385,12 @@ class MyFrame1 ( wx.Frame ):
 	def start_track( self, event ):
 		event.Skip()
 
+	def hand2( self, event ):
+		event.Skip()
+
+	def hand11( self, event ):
+		event.Skip()
+
 	def open_a_data( self, event ):
 		event.Skip()
 
@@ -396,7 +421,7 @@ class MyFrame1 ( wx.Frame ):
 	def Save( self, event ):
 		event.Skip()
 
-	def Reset( self, event ):
+	def Delete( self, event ):
 		event.Skip()
 
 	def testmode( self, event ):
