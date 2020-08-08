@@ -64,8 +64,15 @@ class myframe(MyFrame1):
         self.keypoint_size = 3
         self.tracking_roi_size = 50
         self.checking_mode = False
-        
-
+        self.open_rm_bg_mode = False
+        self.color_picker = []
+        self.color_thres = []
+        self.bg_color = (0,255,0)
+        self.point_color = (0,0,255)
+        self.mask = []
+        self.set_mask_thres = False
+        self.dist = 0
+        self.a = 0
 
 
     def save_mp4( self, event ):
@@ -348,8 +355,10 @@ class myframe(MyFrame1):
         self.imi += 1
         try : 
             self.show_imi(self.imi)
-            if self.checking_mode:
-                self.read_pkl(event)
+            try:
+                if self.checking_mode and not self.open_rm_bg_mode:
+                    self.read_pkl(event)
+            except :pass
         except : 
             self.imi -= 1
             wx.MessageBox('This is the last image of this folder', 'Cannot go next !',wx.OK )
@@ -357,8 +366,11 @@ class myframe(MyFrame1):
     def Previous(self, event):
         self.imi -= 1
         try: 
-            self.show_imi(self.imi)
-            self.read_pkl(event)
+            if self.open_rm_bg_mode:
+                self.read_clean(event)
+            else:
+                self.show_imi(self.imi)
+                self.read_pkl(event)
         except: 
             self.imi += 1
             wx.MessageBox('This is the first image of this folder', 'Cannot go previous !',wx.OK )
@@ -517,21 +529,43 @@ class myframe(MyFrame1):
     def getmousepos(self, event):
         thres = 720/500
         x, y = event.GetPosition()
+        
         self.click = int(x*thres), int(y*thres)
         self.left_down = event.LeftDown()
         self.left_up = event.LeftUp()
         self.right_up = event.RightUp()
-  
-        if self.left_down:
-            self.manage_point(event)
-        if self.left_up:
-            self.move_point = False
-        if self.right_up:
-            self.set_covered_point()
-            self.Redraw(event)
-        if self.move_point:
-            self.draw_move(event)
-            self.log('point[%d] is relocating to (%d, %d)'%(self.nearest_index,self.click[0],self.click[1]))
+      
+        if self.open_rm_bg_mode:
+            if self.left_down and not self.set_mask_thres:
+                self.color_picker.append(self.click)
+                self.color_thres.append(10)
+                self.set_mask_thres = True
+            if self.set_mask_thres:
+                last_point = self.color_picker[-1]
+                dist = (last_point[0]-self.click[0])**2 + (last_point[1]-self.click[1])**2
+                dist = dist**0.5/2
+                self.color_thres[len(self.color_picker)-1] = dist
+                self.show_imi(self.imi)
+                self.show_mask(event)
+            if self.left_up :
+                self.set_mask_thres = False
+            if self.right_up:
+                self.color_picker = []
+                self.color_thres = []
+                self.show_imi(self.imi)
+                self.show_mask(event)
+                
+        else:
+            if self.left_down:
+                self.manage_point(event)
+            if self.left_up:
+                self.move_point = False
+            if self.right_up:
+                self.set_covered_point()
+                self.Redraw(event)
+            if self.move_point:
+                self.draw_move(event)
+                self.log('point[%d] is relocating to (%d, %d)'%(self.nearest_index,self.click[0],self.click[1]))
         
     def open_a_data( self, event ):
         with wx.FileDialog(self, "Open .bmp file", wildcard="bmp files (*.bmp)|*.bmp",
@@ -729,35 +763,44 @@ class myframe(MyFrame1):
     
 
     def Save(self,event):
-        if len(self.point_temp) == self.hand_mode:
-            # output = [img_name, [11_points], [confirm]]
-            img_name = str(self.imi).zfill(10)
-            dictionary_data = {"keypoint": self.point_temp
-                    , 'covered_point': self.covered_point}
-            assert self.hand_mode in [2,11]
-            if self.hand_mode == 11:
-                dir_temp = os.path.join(self.img_folder ,img_name + ".pkl")
-            elif self.hand_mode == 2:
-                dir_temp = os.path.join(self.img_folder ,img_name + "_2p.pkl")
-            with open(dir_temp, "wb") as f:
-                pickle.dump(dictionary_data, f)
-            self.real_im = []
-            self.point_temp = []
+
+        if self.open_rm_bg_mode:
+            name = 'clean_'+str(self.imi).zfill(10) + '.bmp'
+            path = os.path.join(self.img_folder, name)
+            filled_img = self.fill(self.real_im, self.color_picker, self.color_thres)
+            cv2.imwrite(path,filled_img)
             self.Next(event)
-
-            if not self.checking_mode:
-                # update all trackers
-                for i in range(self.hand_mode):
-                    if not self.covered_point[i]: # update if not be covered
-                        self.mytracks[i].update(self.real_im)
-                    p = self.mytracks[i].center
-                    self.point_temp.append(p)
-                print('len=',len(self.point_temp))
-                self.Redraw(event)
-      
-
+            self.show_mask(event)
+            self.log('saved '+name)
         else:
-            wx.MessageBox('need %d keypoint to save'%self.hand_mode, 'Cannot save !',wx.OK )
+            if len(self.point_temp) == self.hand_mode:
+                # output = [img_name, [11_points], [confirm]]
+                img_name = str(self.imi).zfill(10)
+                dictionary_data = {"keypoint": self.point_temp
+                        , 'covered_point': self.covered_point}
+                assert self.hand_mode in [2,11]
+                if self.hand_mode == 11:
+                    dir_temp = os.path.join(self.img_folder ,img_name + ".pkl")
+                elif self.hand_mode == 2:
+                    dir_temp = os.path.join(self.img_folder ,img_name + "_2p.pkl")
+                with open(dir_temp, "wb") as f:
+                    pickle.dump(dictionary_data, f)
+                self.real_im = []
+                self.point_temp = []
+                self.Next(event)
+
+                if not self.checking_mode:
+                    # update all trackers
+                    for i in range(self.hand_mode):
+                        if not self.covered_point[i]: # update if not be covered
+                            self.mytracks[i].update(self.real_im)
+                        p = self.mytracks[i].center
+                        self.point_temp.append(p)
+                    self.Redraw(event)
+        
+
+            else:
+                wx.MessageBox('need %d keypoint to save'%self.hand_mode, 'Cannot save !',wx.OK )
         
     def on_key(self, event):
         key = event.GetKeyCode()
@@ -770,6 +813,9 @@ class myframe(MyFrame1):
                     self.stop_recording(event)
         event.Skip()
     def testmode(self, event):
+        self.test_open_rm_bg(event)
+ 
+    def test___(self,event):
         self.img_folder = 'video_temp/70'
         self.imi = 3
         self.stop_cam = True # stop showing camera
@@ -781,6 +827,98 @@ class myframe(MyFrame1):
         self.reinit_tracker(event)
 
         self.roi_show(event)
-    
+    def test_open_rm_bg(self, event):
+        self.color_picker = []
+        
+        self.open_rm_bg_mode = True 
+        self.checking_mode = False
+        self.init_open_imgfolder = True
+        fdir = 'video_temp\\07'
+        self.img_folder = fdir
+        self.imi = 1
+        try:
+            self.cap_.release()
+        except :pass
+        self.stop_cam = True # stop showing camera
+        self.show_imi(self.imi)
+        self.m_bitmap5.Bind(wx.EVT_MOUSE_EVENTS, self.getmousepos)
+        
+    def open_rm_bg(self, event):
+        self.open_rm_bg_mode = True 
+        self.checking_mode = False
+        self.init_open_imgfolder = True
+        fdir = ""  
 
-    
+        try:
+            dir_temp = os.path.join(self.currentpath, 'video_temp')
+            dlg = wx.DirDialog(self, defaultPath = dir_temp)
+        except:        
+            dlg = wx.DirDialog(self, defaultPath = self.currentpath)
+        
+        if dlg.ShowModal() == wx.ID_OK:
+            fdir = dlg.GetPath()
+            dlg.SetPath(fdir)
+        dlg.Destroy()
+
+        self.img_folder = fdir
+        self.imi = 1
+        try:
+            self.cap_.release()
+        except :pass
+        self.stop_cam = True # stop showing camera
+        self.show_imi(self.imi)
+        self.m_bitmap5.Bind(wx.EVT_MOUSE_EVENTS, self.getmousepos)
+
+    def show_mask(self, event):
+        filled_img = self.fill(self.real_im, self.color_picker, self.color_thres)
+        for x,y in self.color_picker:
+            filled_img = cv2.circle(filled_img, (int(x),int(y)), 5, self.point_color, 2)
+        if self.set_mask_thres:
+            last_pick = self.color_picker[-1]
+            filled_img = cv2.line(filled_img, last_pick, self.click, self.point_color, 1) 
+        temp_name = 'wxbit_temp.bmp'
+        cv2.imwrite(temp_name, filled_img)
+        wximg = wx.Bitmap(temp_name, wx.BITMAP_TYPE_ANY)
+        width = wximg.GetWidth()
+        self.wximg = self.scale_bitmap(wximg, 500/width)
+        self.m_bitmap5.SetBitmap(self.wximg)
+        self.m_mgr.Update()
+        self.log(str('masking img_%s'%str(self.imi).zfill(10)))
+
+    def fill(self, frame, picker, thres):
+        for i, (x, y) in enumerate(picker):
+            thres = self.color_thres[i]
+            blue,green,red = frame[y, x]
+            val_red = frame[:,:,2]
+            val_green = frame[:,:,1]
+            val_blue = frame[:,:,0]
+            c1 = (val_red>red-thres) * (val_red<red+thres)
+            c2 = (val_green>green-thres) * (val_green<green+thres)
+            c3 = (val_blue>blue-thres) * (val_blue<blue+thres)
+            c = c1*c2*c3
+            frame[c] = self.bg_color
+        return frame
+    def bg_red(self,event):
+        self.bg_color = (0,0,255)
+        self.point_color = (255,0,0)
+        self.show_imi(self.imi)
+        self.show_mask(event)
+    def bg_green(self,event):
+        self.bg_color = (0,255,0)
+        self.point_color = (0,0,255)
+        self.show_imi(self.imi)
+        self.show_mask(event)
+    def bg_blue(self,event):
+        self.bg_color = (255,0,0)
+        self.point_color = (0,0,255)
+        self.show_imi(self.imi)
+        self.show_mask(event)
+    def read_clean(self,event):
+        temp_name = 'clean_'+str(self.imi).zfill(10)+'.bmp'
+        path = os.path.join(self.img_folder, temp_name)
+        wximg = wx.Bitmap(path, wx.BITMAP_TYPE_ANY)
+        width = wximg.GetWidth()
+        self.wximg = self.scale_bitmap(wximg, 500/width)
+        self.m_bitmap5.SetBitmap(self.wximg)
+        self.m_mgr.Update()
+        self.log('loaded img_%s'%temp_name)

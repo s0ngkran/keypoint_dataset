@@ -169,6 +169,24 @@ class MyFrame1 ( wx.Frame ):
 
 		self.m_menubar1.Append( self.setting_menu, u"Setting" )
 
+		self.menu_background = wx.Menu()
+		self.m_menuItem29 = wx.MenuItem( self.menu_background, wx.ID_ANY, u"Open folder", wx.EmptyString, wx.ITEM_NORMAL )
+		self.menu_background.Append( self.m_menuItem29 )
+
+		self.m_menu5_color = wx.Menu()
+		self.m_menuItem31 = wx.MenuItem( self.m_menu5_color, wx.ID_ANY, u"red", wx.EmptyString, wx.ITEM_NORMAL )
+		self.m_menu5_color.Append( self.m_menuItem31 )
+
+		self.m_menuItem32 = wx.MenuItem( self.m_menu5_color, wx.ID_ANY, u"green", wx.EmptyString, wx.ITEM_NORMAL )
+		self.m_menu5_color.Append( self.m_menuItem32 )
+
+		self.m_menuItem33 = wx.MenuItem( self.m_menu5_color, wx.ID_ANY, u"blue", wx.EmptyString, wx.ITEM_NORMAL )
+		self.m_menu5_color.Append( self.m_menuItem33 )
+
+		self.menu_background.AppendSubMenu( self.m_menu5_color, u"Color" )
+
+		self.m_menubar1.Append( self.menu_background, u"rm_Background" )
+
 		self.menu_check = wx.Menu()
 		self.menuItem_open_a_data = wx.MenuItem( self.menu_check, wx.ID_ANY, u"open a data", wx.EmptyString, wx.ITEM_NORMAL )
 		self.menuItem_open_a_data.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_FILE_OPEN, wx.ART_MENU ) )
@@ -243,7 +261,7 @@ class MyFrame1 ( wx.Frame ):
 
 		self.m_mgr.AddPane( self.m_button14, wx.aui.AuiPaneInfo() .Left() .CaptionVisible( False ).CloseButton( False ).PinButton( True ).Dock().Resizable().FloatingSize( wx.DefaultSize ) )
 
-		self.m_button141 = wx.Button( self, wx.ID_ANY, u"Delete", wx.DefaultPosition, wx.Size( 700,-1 ), 0 )
+		self.m_button141 = wx.Button( self, wx.ID_ANY, u"Reset", wx.DefaultPosition, wx.Size( 700,-1 ), 0 )
 
 		self.m_button141.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_FILE_SAVE, wx.ART_BUTTON ) )
 		self.m_button141.SetMinSize( wx.Size( 700,-1 ) )
@@ -291,6 +309,10 @@ class MyFrame1 ( wx.Frame ):
 		self.Bind( wx.EVT_MENU, self.start_track, id = self.m_menuItem61.GetId() )
 		self.Bind( wx.EVT_MENU, self.hand2, id = self.mode_hand2.GetId() )
 		self.Bind( wx.EVT_MENU, self.hand11, id = self.mode_hand11.GetId() )
+		self.Bind( wx.EVT_MENU, self.open_rm_bg, id = self.m_menuItem29.GetId() )
+		self.Bind( wx.EVT_MENU, self.bg_red, id = self.m_menuItem31.GetId() )
+		self.Bind( wx.EVT_MENU, self.bg_green, id = self.m_menuItem32.GetId() )
+		self.Bind( wx.EVT_MENU, self.bg_blue, id = self.m_menuItem33.GetId() )
 		self.Bind( wx.EVT_MENU, self.open_a_data, id = self.menuItem_open_a_data.GetId() )
 		self.Bind( wx.EVT_MENU, self.open_a_folder, id = self.menuItem_open_a_folder.GetId() )
 		self.m_textCtrl3.Bind( wx.EVT_KEY_UP, self.key_on_go_bmp )
@@ -301,7 +323,7 @@ class MyFrame1 ( wx.Frame ):
 		self.m_button12.Bind( wx.EVT_BUTTON, self.Back )
 		self.m_button13.Bind( wx.EVT_BUTTON, self.Clear )
 		self.m_button14.Bind( wx.EVT_BUTTON, self.Save )
-		self.m_button141.Bind( wx.EVT_BUTTON, self.Delete )
+		self.m_button141.Bind( wx.EVT_BUTTON, self.Reset )
 		self.m_button142.Bind( wx.EVT_BUTTON, self.testmode )
 
 	def __del__( self ):
@@ -391,6 +413,18 @@ class MyFrame1 ( wx.Frame ):
 	def hand11( self, event ):
 		event.Skip()
 
+	def open_rm_bg( self, event ):
+		event.Skip()
+
+	def bg_red( self, event ):
+		event.Skip()
+
+	def bg_green( self, event ):
+		event.Skip()
+
+	def bg_blue( self, event ):
+		event.Skip()
+
 	def open_a_data( self, event ):
 		event.Skip()
 
@@ -421,7 +455,7 @@ class MyFrame1 ( wx.Frame ):
 	def Save( self, event ):
 		event.Skip()
 
-	def Delete( self, event ):
+	def Reset( self, event ):
 		event.Skip()
 
 	def testmode( self, event ):
