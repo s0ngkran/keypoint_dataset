@@ -550,8 +550,19 @@ class myframe(MyFrame1):
             if self.left_up :
                 self.set_mask_thres = False
             if self.right_up:
-                self.color_picker = []
-                self.color_thres = []
+                # del a point
+                dist = np.array(self.color_picker)-np.array(self.click)
+                nearest_index = np.argmin(dist[:,0]**2 + dist[:,1]**2)
+                # ck in_area
+                dist = self.color_picker[nearest_index] - np.array(self.click)
+                dist = dist[0]**2 + dist[1]**2
+                if dist < 1000:
+                    self.color_picker.remove(self.color_picker[nearest_index])
+                    self.color_thres.remove(self.color_thres[nearest_index])
+                else:
+                    # clear all
+                    self.color_picker = []
+                    self.color_thres = []
                 self.show_imi(self.imi)
                 self.show_mask(event)
                 
@@ -767,6 +778,7 @@ class myframe(MyFrame1):
         if self.open_rm_bg_mode:
             name = 'clean_'+str(self.imi).zfill(10) + '.bmp'
             path = os.path.join(self.img_folder, name)
+            self.show_imi(self.imi)
             filled_img = self.fill(self.real_im, self.color_picker, self.color_thres)
             cv2.imwrite(path,filled_img)
             self.Next(event)
@@ -813,7 +825,8 @@ class myframe(MyFrame1):
                     self.stop_recording(event)
         event.Skip()
     def testmode(self, event):
-        self.test_open_rm_bg(event)
+        for i in range(20):
+            self.Save(event)
  
     def test___(self,event):
         self.img_folder = 'video_temp/70'
@@ -886,16 +899,20 @@ class myframe(MyFrame1):
         self.log(str('masking img_%s'%str(self.imi).zfill(10)))
 
     def fill(self, frame, picker, thres):
+        cs = []
         for i, (x, y) in enumerate(picker):
-            thres = self.color_thres[i]
             blue,green,red = frame[y, x]
             val_red = frame[:,:,2]
             val_green = frame[:,:,1]
             val_blue = frame[:,:,0]
+            thres = self.color_thres[i]
             c1 = (val_red>red-thres) * (val_red<red+thres)
             c2 = (val_green>green-thres) * (val_green<green+thres)
             c3 = (val_blue>blue-thres) * (val_blue<blue+thres)
             c = c1*c2*c3
+            cs.append(c)
+        for c in cs:
+
             frame[c] = self.bg_color
         return frame
     def bg_red(self,event):
