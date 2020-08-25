@@ -315,9 +315,16 @@ class myframe(MyFrame1):
     def show_imi(self, i):
         self.imi_path = os.path.join(self.img_folder
                     , str(i).zfill(10)+'.bmp')
-        wximg = wx.Bitmap(self.imi_path, wx.BITMAP_TYPE_ANY)
-        self.real_im = cv2.imread(self.imi_path)
+        try:
+            wximg = wx.Bitmap(self.imi_path, wx.BITMAP_TYPE_ANY)
+            self.real_im = cv2.imread(self.imi_path)
+        except:
+            self.log('cannot read %s'%self.imi_path)
         width = wximg.GetWidth()
+        self.real_im_width = width
+        if width==0: self.log('width=0 check .bmp file')
+        assert width!=0, 'width=0 check .bmp file'
+        
         self.wximg = self.scale_bitmap(wximg, 500/width)
         self.m_bitmap5.SetBitmap(self.wximg)
         self.m_mgr.Update()
@@ -390,7 +397,7 @@ class myframe(MyFrame1):
         self.Redraw(event)
 
     def draw(self):
-        thres = 500/720
+        thres = 500/self.real_im_width
         rois, cens = [], []
         for i in range(len(self.point_temp)):
             ra, rb, rc, rd = self.mytracks[i].roi
@@ -527,7 +534,7 @@ class myframe(MyFrame1):
         self.draw_bitmap()
       
     def getmousepos(self, event):
-        thres = 720/500
+        thres = self.real_im_width/500
         x, y = event.GetPosition()
         
         self.click = int(x*thres), int(y*thres)
