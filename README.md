@@ -8,4 +8,4 @@
 ![alt text](https://github.com/s0ngkran/keypoint_dataset/blob/master/example/BAwesP3dCu%2000_00_00-00_00_30.gif)
 
 # manual mode
-![alt text](https://github.com/s0ngkran/keypoint_dataset/blob/master/example/QFPKaXYjh1%2000_00_00-00_00_30.gif)
+![alt text](https://github.com/s0ngkran/keypoint_dataset/blob/master/example/ex_manual_mode.gif)
