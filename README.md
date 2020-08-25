@@ -1,5 +1,5 @@
 # remove green screen feature
-* need a folder that store .bmp files follow this pattern  [00000000001.bmp, 00000000002.bmp, 0000000003.bmp, ...]
+* need a folder that store .bmp files follow this pattern<br />[00000000001.bmp, 00000000002.bmp, 0000000003.bmp, ...]
 * pick a point and change threshold
 * multi-point is allowed
 * to remove a picked-point, move cursor near that point and right-click
