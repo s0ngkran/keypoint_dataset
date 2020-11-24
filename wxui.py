@@ -165,7 +165,11 @@ class MyFrame1 ( wx.Frame ):
 		self.mode_hand11 = wx.MenuItem( self.setting_menu, wx.ID_ANY, u"mode hand_keypoint_11", wx.EmptyString, wx.ITEM_CHECK )
 		self.mode_hand11.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
 		self.setting_menu.Append( self.mode_hand11 )
-		self.mode_hand11.Check( True )
+
+		self.mode_hand25 = wx.MenuItem( self.setting_menu, wx.ID_ANY, u"mode hand_keypoint_25", wx.EmptyString, wx.ITEM_CHECK )
+		self.mode_hand25.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_TICK_MARK, wx.ART_MENU ) )
+		self.setting_menu.Append( self.mode_hand25 )
+		self.mode_hand25.Check( True )
 
 		self.m_menubar1.Append( self.setting_menu, u"Setting" )
 
@@ -269,21 +273,13 @@ class MyFrame1 ( wx.Frame ):
 
 		self.m_mgr.AddPane( self.m_button141, wx.aui.AuiPaneInfo() .Left() .CaptionVisible( False ).CloseButton( False ).PinButton( True ).Dock().Resizable().FloatingSize( wx.DefaultSize ) )
 
-		self.m_button142 = wx.Button( self, wx.ID_ANY, u"Delete", wx.DefaultPosition, wx.Size( 700,-1 ), 0 )
+		self.m_button142 = wx.Button( self, wx.ID_ANY, u"reserve...", wx.DefaultPosition, wx.Size( 700,-1 ), 0 )
 
-		self.m_button142.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_ERROR, wx.ART_BUTTON ) )
+		self.m_button142.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_FILE_SAVE, wx.ART_BUTTON ) )
 		self.m_button142.SetMinSize( wx.Size( 700,-1 ) )
 		self.m_button142.SetMaxSize( wx.Size( 700,-1 ) )
 
 		self.m_mgr.AddPane( self.m_button142, wx.aui.AuiPaneInfo() .Left() .CaptionVisible( False ).CloseButton( False ).PinButton( True ).Dock().Resizable().FloatingSize( wx.DefaultSize ) )
-
-		self.m_button1421 = wx.Button( self, wx.ID_ANY, u"testmode", wx.DefaultPosition, wx.Size( 700,-1 ), 0 )
-
-		self.m_button1421.SetBitmap( wx.ArtProvider.GetBitmap( wx.ART_FILE_SAVE, wx.ART_BUTTON ) )
-		self.m_button1421.SetMinSize( wx.Size( 700,-1 ) )
-		self.m_button1421.SetMaxSize( wx.Size( 700,-1 ) )
-
-		self.m_mgr.AddPane( self.m_button1421, wx.aui.AuiPaneInfo() .Left() .CaptionVisible( False ).CloseButton( False ).PinButton( True ).Dock().Resizable().FloatingSize( wx.DefaultSize ) )
 
 
 		self.m_mgr.Update()
@@ -317,6 +313,7 @@ class MyFrame1 ( wx.Frame ):
 		self.Bind( wx.EVT_MENU, self.start_track, id = self.m_menuItem61.GetId() )
 		self.Bind( wx.EVT_MENU, self.hand2, id = self.mode_hand2.GetId() )
 		self.Bind( wx.EVT_MENU, self.hand11, id = self.mode_hand11.GetId() )
+		self.Bind( wx.EVT_MENU, self.hand11, id = self.mode_hand25.GetId() )
 		self.Bind( wx.EVT_MENU, self.open_rm_bg, id = self.m_menuItem29.GetId() )
 		self.Bind( wx.EVT_MENU, self.bg_red, id = self.m_menuItem31.GetId() )
 		self.Bind( wx.EVT_MENU, self.bg_green, id = self.m_menuItem32.GetId() )
@@ -332,8 +329,7 @@ class MyFrame1 ( wx.Frame ):
 		self.m_button13.Bind( wx.EVT_BUTTON, self.Clear )
 		self.m_button14.Bind( wx.EVT_BUTTON, self.Save )
 		self.m_button141.Bind( wx.EVT_BUTTON, self.Reset )
-		self.m_button142.Bind( wx.EVT_BUTTON, self.Delete )
-		self.m_button1421.Bind( wx.EVT_BUTTON, self.testmode )
+		self.m_button142.Bind( wx.EVT_BUTTON, self.testmode )
 
 	def __del__( self ):
 		self.m_mgr.UnInit()
@@ -422,6 +418,7 @@ class MyFrame1 ( wx.Frame ):
 	def hand11( self, event ):
 		event.Skip()
 
+
 	def open_rm_bg( self, event ):
 		event.Skip()
 
@@ -465,9 +462,6 @@ class MyFrame1 ( wx.Frame ):
 		event.Skip()
 
 	def Reset( self, event ):
-		event.Skip()
-
-	def Delete( self, event ):
 		event.Skip()
 
 	def testmode( self, event ):
