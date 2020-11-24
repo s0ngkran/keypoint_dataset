@@ -508,13 +508,27 @@
                     </object>
                     <object class="wxMenuItem" expanded="1">
                         <property name="bitmap">Load From Art Provider; wxART_TICK_MARK; wxART_MENU</property>
-                        <property name="checked">1</property>
+                        <property name="checked">0</property>
                         <property name="enabled">1</property>
                         <property name="help"></property>
                         <property name="id">wxID_ANY</property>
                         <property name="kind">wxITEM_CHECK</property>
                         <property name="label">mode hand_keypoint_11</property>
                         <property name="name">mode_hand11</property>
+                        <property name="permission">none</property>
+                        <property name="shortcut"></property>
+                        <property name="unchecked_bitmap"></property>
+                        <event name="OnMenuSelection">hand11</event>
+                    </object>
+                    <object class="wxMenuItem" expanded="1">
+                        <property name="bitmap">Load From Art Provider; wxART_TICK_MARK; wxART_MENU</property>
+                        <property name="checked">1</property>
+                        <property name="enabled">1</property>
+                        <property name="help"></property>
+                        <property name="id">wxID_ANY</property>
+                        <property name="kind">wxITEM_CHECK</property>
+                        <property name="label">mode hand_keypoint_25</property>
+                        <property name="name">mode_hand25</property>
                         <property name="permission">none</property>
                         <property name="shortcut"></property>
                         <property name="unchecked_bitmap"></property>
